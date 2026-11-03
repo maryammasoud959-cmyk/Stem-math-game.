@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galactic Math Run: Alien Rescue</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            user-select: none;
+            touch-action: none;
+            overflow: hidden;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .arcade-glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.25);
+        }
+        .arcade-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        }
+        .arcade-btn:hover:not(:disabled) {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 22px rgba(167, 139, 250, 0.6);
+            background: linear-gradient(135deg, #8b5cf6 0%, #5b21b6 100%);
+        }
+        .arcade-btn:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+        .glow-purple { text-shadow: 0 0 12px rgba(167, 139, 250, 0.8); }
+        .glow-cyan { text-shadow: 0 0 12px rgba(34, 211, 238, 0.8); }
+        .glow-amber { text-shadow: 0 0 12px rgba(251, 191, 36, 0.8); }
+
+        /* Modal Animation */
+        .modal-pop {
+            animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes modalPop {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between relative select-none">
+
+    <!-- GAME CANVAS LAYER -->
+    <canvas id="arcadeCanvas" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></canvas>
+
+    <!-- TOP HUD OVERLAY -->
+    <header class="relative z-10 w-full p-3 sm:p-4 pointer-events-none">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            
+            <!-- Logo & Level Badge -->
+            <div class="flex items-center space-x-3 rtl:space-x-reverse pointer-events-auto">
+                <div class="w-10 h-10 rounded-xl bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-purple-400 text-xl shadow-lg animate-pulse">
+                    <i class="fa-solid fa-shuttle-space"></i>
+                </div>
+                <div>
+                    <h1 class="font-orbitron font-black text-base sm:text-xl text-purple-300 glow-purple tracking-wider leading-none">
+                        GALACTIC MATH RUN
+                    </h1>
+                    <span id="ui-sector-badge" class="text-[11px] font-bold text-cyan-400 tracking-widest uppercase">SECTOR 1: QUANTUM GRID</span>
+                </div>
+            </div>
+
+            <!-- Stats & Selectors -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-4 pointer-events-auto">
+                
+                <!-- Language Selector -->
+                <div class="flex items-center space-x-1.5 bg-slate-900/90 border border-purple-500/40 rounded-xl px-2.5 py-1 text-xs">
+                    <i class="fa-solid fa-globe text-purple-400"></i>
+                    <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-transparent text-xs font-bold text-cyan-300 focus:outline-none cursor-pointer">
+                        <option value="en" class="bg-slate-900 text-white">English</option>
+                        <option value="es" class="bg-slate-900 text-white">Español</option>
+                        <option value="ar" class="bg-slate-900 text-white">العربية</option>
+                    </select>
+                </div>
+
+                <!-- Ship Skin Customizer -->
+                <div class="flex items-center space-x-1.5 bg-slate-900/90 border border-purple-500/40 rounded-xl px-2.5 py-1 text-xs">
+                    <i class="fa-solid fa-rocket text-amber-400"></i>
+                    <select id="ship-select" onchange="changeShipSkin(this.value)" class="bg-transparent text-xs font-bold text-amber-300 focus:outline-none cursor-pointer">
+                        <option value="falcon" class="bg-slate-900 text-white">Neon Falcon</option>
+                        <option value="plasma" class="bg-slate-900 text-white">Plasma Rocket</option>
+                        <option value="saucer" class="bg-slate-900 text-white">Cosmic Saucer</option>
+                        <option value="cyber" class="bg-slate-900 text-white">Cyber Mech</option>
+                    </select>
+                </div>
+
+                <!-- Live Gameplay Dashboard -->
+                <div class="flex items-center space-x-3 bg-slate-950/85 px-3.5 py-1.5 rounded-2xl border border-purple-500/40 shadow-xl rtl:space-x-reverse">
+                    <!-- Score -->
+                    <div class="text-center px-1">
+                        <div id="lbl-score" class="text-[9px] text-slate-400 font-bold tracking-wider">SCORE</div>
+                        <div id="ui-score" class="font-orbitron font-black text-amber-400 text-sm sm:text-base glow-amber">0</div>
+                    </div>
+                    <!-- Aliens Saved -->
+                    <div class="text-center border-x border-slate-800 px-2">
+                        <div id="lbl-pets" class="text-[9px] text-slate-400 font-bold tracking-wider">RESCUED</div>
+                        <div id="ui-pets" class="font-orbitron font-black text-cyan-400 text-sm sm:text-base glow-cyan">🐾 0</div>
+                    </div>
+                    <!-- Shield & Energy Bar -->
+                    <div class="text-center w-20 sm:w-28">
+                        <div class="flex justify-between text-[9px] text-slate-300 font-bold mb-0.5">
+                            <span id="lbl-shield">SHIELD</span>
+                            <span id="ui-shield-val">100%</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-2 border border-slate-700 overflow-hidden">
+                            <div id="ui-shield-bar" class="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 h-full w-full transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- START / PAUSE OVERLAY -->
+    <div id="start-overlay" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="arcade-glass max-w-md w-full rounded-3xl p-6 sm:p-8 text-center border border-purple-500/50 shadow-2xl modal-pop">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-purple-900/60 border-2 border-purple-400 flex items-center justify-center text-purple-300 text-4xl shadow-xl animate-bounce">
+                <i class="fa-solid fa-gamepad"></i>
+            </div>
+            <h2 id="start-title" class="font-orbitron font-black text-2xl sm:text-3xl text-white mb-2 tracking-wider glow-purple">
+                GALACTIC MATH RUN
+            </h2>
+            <p id="start-subtitle" class="text-xs sm:text-sm text-slate-300 mb-6 leading-relaxed">
+                Pilot your ship through deep space! Avoid asteroids, fly through correct Math Power-Up Gates, and solve mini-game Math Locks to rescue trapped alien pets.
+            </p>
+
+            <button onclick="startGame()" class="arcade-btn w-full py-3.5 rounded-2xl font-orbitron font-black text-white text-base tracking-widest uppercase flex items-center justify-center gap-3">
+                <i class="fa-solid fa-play"></i> <span id="btn-start-txt">LAUNCH MISSION</span>
+            </button>
+
+            <div class="mt-4 flex justify-around text-[11px] text-slate-400 font-mono border-t border-slate-800 pt-3">
+                <span><i class="fa-solid fa-keyboard text-purple-400"></i> WASD / Arrows</span>
+                <span><i class="fa-solid fa-hand-pointer text-cyan-400"></i> Drag / Touch</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOUCH ON-SCREEN D-PAD (MOBILE ONLY) -->
+    <div class="relative z-10 p-4 pointer-events-auto sm:hidden flex justify-between items-end">
+        <div class="grid grid-cols-3 gap-2 w-36 h-36 opacity-75">
+            <div></div>
+            <button ontouchstart="touchDir('up', true)" ontouchend="touchDir('up', false)" class="bg-slate-900/80 border border-purple-500/50 rounded-xl text-purple-300 font-bold text-xl active:bg-purple-600 flex items-center justify-center">▲</button>
+            <div></div>
+            <button ontouchstart="touchDir('left', true)" ontouchend="touchDir('left', false)" class="bg-slate-900/80 border border-purple-500/50 rounded-xl text-purple-300 font-bold text-xl active:bg-purple-600 flex items-center justify-center">◄</button>
+            <div class="flex items-center justify-center text-slate-600"><i class="fa-solid fa-rocket"></i></div>
+            <button ontouchstart="touchDir('right', true)" ontouchend="touchDir('right', false)" class="bg-slate-900/80 border border-purple-500/50 rounded-xl text-purple-300 font-bold text-xl active:bg-purple-600 flex items-center justify-center">►</button>
+            <div></div>
+            <button ontouchstart="touchDir('down', true)" ontouchend="touchDir('down', false)" class="bg-slate-900/80 border border-purple-500/50 rounded-xl text-purple-300 font-bold text-xl active:bg-purple-600 flex items-center justify-center">▼</button>
+            <div></div>
+        </div>
+    </div>
+
+    <!-- MATH LOCK MINI-GAME MODAL -->
+    <div id="math-modal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+        <div class="arcade-glass max-w-md w-full rounded-3xl p-6 border-2 border-cyan-400/60 shadow-2xl modal-pop">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <div class="flex items-center gap-2.5 text-cyan-400 font-orbitron font-bold text-sm sm:text-base">
+                    <i class="fa-solid fa-[#f43f5e] fa-paw text-xl text-pink-400 animate-bounce"></i>
+                    <span id="modal-title">ALIEN PET RESCUE LOCK!</span>
+                </div>
+                <span id="modal-topic-badge" class="bg-purple-950 text-purple-300 text-[10px] px-2.5 py-1 rounded-full border border-purple-700 font-mono uppercase">7th Grade STEM</span>
+            </div>
+
+            <div class="mb-5">
+                <p id="modal-question" class="text-sm sm:text-base text-slate-100 font-semibold leading-relaxed mb-3">
+                    Question goes here...
+                </p>
+                <div id="modal-visual" class="bg-slate-950/90 p-3 rounded-xl border border-slate-800 text-center font-mono text-cyan-300 text-xs sm:text-sm hidden">
+                </div>
+            </div>
+
+            <!-- Answer Options -->
+            <div id="modal-options" class="grid grid-cols-1 gap-2.5">
+            </div>
+
+            <!-- Feedback Bar -->
+            <div id="modal-feedback" class="mt-4 text-center text-xs sm:text-sm font-bold py-2 rounded-xl hidden"></div>
+        </div>
+    </div>
+
+    <!-- GAME OVER / SECTOR CLEARED MODAL -->
+    <div id="end-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+        <div class="arcade-glass max-w-md w-full rounded-3xl p-6 sm:p-8 text-center border-2 border-purple-500/70 shadow-2xl modal-pop">
+            <div id="end-icon" class="text-5xl text-amber-400 mb-3">
+                <i class="fa-solid fa-trophy animate-pulse"></i>
+            </div>
+            <h2 id="end-title" class="font-orbitron font-black text-2xl text-white mb-2 glow-purple">MISSION ACCOMPLISHED!</h2>
+            <p id="end-desc" class="text-xs sm:text-sm text-slate-300 mb-6">You saved all alien pets and cleared the sector!</p>
+            
+            <button onclick="restartGame()" class="arcade-btn w-full py-3.5 rounded-2xl font-orbitron font-black text-white text-sm tracking-widest uppercase">
+                <span id="btn-end-txt">PLAY AGAIN</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- AUDIO SYNTH & GAMEPLAY LOGIC -->
+    <script>
+        /* WEB AUDIO SYNTHESIZER */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                try {
+                    if (!this.ctx) {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch(e) {}
+            }
+            playGate() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+                } catch(e) {}
+            }
+            playRescue() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.16);
+                    osc.frequency.setValueAtTime(1046.50, this.ctx.currentTime + 0.24);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.35);
+                } catch(e) {}
+            }
+            playHit() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+                } catch(e) {}
+            }
+        }
+        const sfx = new SoundEngine();
+
+        /* SPACESHIP SKINS */
+        const shipSkins = {
+            falcon: { name: "Neon Falcon", color: "#8b5cf6", glow: "#a78bfa", trail: "#c084fc", icon: "\uf197" },
+            plasma: { name: "Plasma Rocket", color: "#ef4444", glow: "#f87171", trail: "#fca5a5", icon: "\uf135" },
+            saucer: { name: "Cosmic Saucer", color: "#06b6d4", glow: "#22d3ee", trail: "#67e8f9", icon: "\uf005" },
+            cyber:  { name: "Cyber Mech", color: "#f59e0b", glow: "#fbbf24", trail: "#fde047", icon: "\uf544" }
+        };
+        let currentSkin = shipSkins.falcon;
+
+        /* MULTI-LANGUAGE DICTIONARY */
+        let currentLang = 'en';
+        const i18n = {
+            en: {
+                title: "GALACTIC MATH RUN",
+                sector: "SECTOR 1: QUANTUM GRID",
+                score: "SCORE",
+                rescued: "RESCUED",
+                shield: "SHIELD",
+                startTitle: "GALACTIC MATH RUN",
+                startSubtitle: "Pilot your starship through deep space! Avoid space hazards, fly through correct Math Power-Up Gates, and solve Math Locks to rescue alien pets.",
+                launch: "LAUNCH MISSION",
+                petLock: "ALIEN PET RESCUE LOCK!",
+                correct: "✓ EXCELLENT MATH LOGIC! PET RESCUED!",
+                incorrect: "✗ MATH ERROR! Shield -15% damage taken.",
+                victoryTitle: "MISSION ACCOMPLISHED! 🏆",
+                victoryDesc: "Outstanding piloting! You rescued all alien pets and navigated deep space!",
+                failedTitle: "SHIP DESTROYED! ⚠️",
+                failedDesc: "Your shield collapsed in space. Repair your ship and try again!",
+                playAgain: "PLAY AGAIN"
+            },
+            es: {
+                title: "CARRERA MATEMÁTICA",
+                sector: "SECTOR 1: RED CUÁNTICA",
+                score: "PUNTOS",
+                rescued: "RESCATADOS",
+                shield: "ESCUDO",
+                startTitle: "CARRERA MATEMÁTICA GALÁCTICA",
+                startSubtitle: "¡Pilota tu nave espacial en el espacio profundo! Evita los peligros, cruza las Puertas Matemáticas correctas y rescata mascotas alienígenas.",
+                launch: "INICIAR MISIÓN",
+                petLock: "¡BLOQUEO DE RESCATE ALIENÍGENA!",
+                correct: "✓ ¡EXCELENTE LÓGICA! MASCOTA RESCATADA.",
+                incorrect: "✗ ¡ERROR MATEMÁTICO! Escudo dañado -15%.",
+                victoryTitle: "¡MISIÓN CUMPLIDA! 🏆",
+                victoryDesc: "¡Piloto increíble! ¡Rescataste a todas las mascotas alienígenas!",
+                failedTitle: "¡NAVE DESTRUIDA! ⚠️",
+                failedDesc: "Tu escudo colapsó. ¡Repara la nave y vuelve a intentarlo!",
+                playAgain: "JUGAR DE NUEVO"
+            },
+            ar: {
+                title: "سباق الرياضيات الفضائي",
+                sector: "القطاع 1: الشبكة الكمومية",
+                score: "النقاط",
+                rescued: "المُنقَذين",
+                shield: "الدرع",
+                startTitle: "سباق الرياضيات الفضائي",
+                startSubtitle: "قُد سفينتك الفضائية عبر الأعماق! تجنب المخاطر، واعبر بوابات الرياضيات الصحيحة لإنقاذ الحيوانات الأليفة الفضائية.",
+                launch: "بدء المهمة",
+                petLock: "قفل إنقاذ الكائن الفضائي!",
+                correct: "✓ إجابة صحيحة! تم إنقاذ الكائن الأليف.",
+                incorrect: "✗ خطأ في الحساب! تضرر الدرع بنسبة 15%.",
+                victoryTitle: "تمت المهمة بنجاح! 🏆",
+                victoryDesc: "قيادة مذهلة! لقد أنقذت جميع الكائنات الفضائية بنجاح!",
+                failedTitle: "تدمرت السفينة! ⚠️",
+                failedDesc: "انهار درع السفينة. أصلح سفينتك وحاول مجدداً!",
+                playAgain: "إعادة اللعب"
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            const txt = i18n[lang];
+
+            document.getElementById('ui-sector-badge').innerText = txt.sector;
+            document.getElementById('lbl-score').inn
